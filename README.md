@@ -1,153 +1,307 @@
-# XmlParser
+# XML Parser and Legal Document Analyzer
 
-To start your Phoenix server:
-
-  * Run `mix setup` to install and setup dependencies
-  * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
-
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
-
-# XML Parser API Documentation
-
-This API allows users to upload XML files, parse them for plaintiff and defendant information, and search for uploaded files. The API adheres to the JSON API specification (https://jsonapi.org).
+This project is a web application that allows users to upload XML files containing legal documents, extracts plaintiff and defendant information, and provides a search functionality for uploaded files.
 
 ## Table of Contents
 
-1. [Base URL](#base-url)
-2. [Authentication](#authentication)
-3. [Content Type](#content-type)
-4. [Endpoints](#endpoints)
-   - [Upload XML File](#upload-xml-file)
-   - [Search Files](#search-files)
-5. [Error Handling](#error-handling)
-6. [Resource Objects](#resource-objects)
-7. [Notes](#notes)
+1. [Project Overview](#project-overview)
+2. [Backend Setup](#backend-setup)
+3. [Frontend Setup](#frontend-setup)
+4. [Running the Application](#running-the-application)
+5. [API Endpoints](#api-endpoints)
+6. [Plaintiff and Defendant Extraction Algorithm](#plaintiff-and-defendant-extraction-algorithm)
 
-## Base URL
+## Project Overview
 
-All URLs referenced in the documentation have the following base:
+The application consists of two main parts:
+1. A Phoenix backend that handles XML parsing, data extraction, and storage.
+2. A React frontend that provides a user interface for file upload and search.
 
-http://localhost:4000/api
+## Backend Setup
 
-## Authentication
+The backend is built with Elixir and the Phoenix framework.
 
-This API currently does not require authentication.
+### Prerequisites
 
-## Content Type
+- Elixir (version 1.14 or later)
+- Phoenix framework
+- PostgreSQL
 
-All requests should include the following header:
-Accept: application/vnd.api+json
+### Installation
 
-All responses will have the content type: 
-Content-Type: application/vnd.api+json
+1. Clone the repository:
+   ```bash
+   git clone [your-repo-url]
+   cd [your-repo-name]
+	```
 
-## Endpoints
+2. Install dependencies:
 
-### Upload XML File
+```bash
+mix deps.get
+```
 
-Upload and parse an XML file.
+3. Set up the database:
 
-- **URL:** `/files`
-- **Method:** `POST`
-- **Content-Type:** `multipart/form-data`
+* Ensure PostgreSQL is running.
+* Update the database configuration in config/dev.exs if necessary.
+* Run migrations:
+```
+	mix ecto.setup
+```
 
-#### Request Body
+4. Create a .env file in the config directory and add your database configuration:
+```
+POSTGRES_USERNAME=your_username
+POSTGRES_PASSWORD=your_password
+POSTGRES_HOST=localhost
+POSTGRES_DB=xml_parser_dev
+POSTGRES_PORT=5432
+```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| file  | File | The XML file to upload |
+## Frontend Setup
+The frontend is built with React.
+### Prerequisites
 
-#### Success Response
+* Node.js (version 14 or later)
+* npm or yarn
 
-- **Code:** 201 CREATED
-- **Content:**
+### Installation
+
+1. Navigate to the root directory:
+```
+mkdir assets
+cd assets
+```
+2. Install dependencies:
+```
+npm install
+```
+
+## Running the Application
+
+1. Start the Phoenix server: go to root dir
+```
+mix phx.server
+```
+2. In a separate terminal, start the frontend development server:
+```
+cd assets
+npm start
+```
+3. Visit http://localhost:3000 in your web browser to access the application.
+
+## API Endpoints
+The backend provides the following API endpoints:
+
+1. Upload XML File
+
+* URL: /api/files
+* Method: POST
+* Content-Type: multipart/form-data
+
+2. Search Files
+
+* URL: /api/files?filename=<search_term>
+* Method: GET
+
+For detailed API documentation, refer to the API Documentation file that follows later
+
+## Plaintiff and Defendant Extraction Algorithm
+The algorithm for extracting plaintiff and defendant information from the XML files is implemented in the XmlParser module. Here's an overview of the process:
+
+### Plaintiff Extraction
+
+1. The XML content is parsed into blocks, paragraphs, and lines.
+2. The algorithm searches for a line containing the word "Plaintiff,".
+3. Once found, it looks backwards for a line containing "COUNTY", "County", or "county".
+4. The content between the county line and the plaintiff line is extracted.
+5. The algorithm then looks for keywords like "individual" or "inclusive" within this content.
+6. If found, it extracts the content from the start of the line with the keyword to the end.
+7. If no keywords are found, it returns the entire extracted content.
+
+### Defendant Extraction
+
+1.The XML content is parsed into blocks, paragraphs, and lines.
+2. The algorithm searches for "v." or "vs." to identify the start of defendant information.
+3. It then looks for "Defendants." to identify the end of defendant information.
+4. The content between these markers is extracted.
+5. The algorithm refines the extracted content by:
+* Looking for text starting with an uppercase letter.
+* Including content up to "inclusive," or "inclusive." if present.
+* If not present, it includes content up to but not including "Defendants."
+
+6. The last word is removed if it appears to be incomplete (doesn't end with punctuation).
+
+This algorithm aims to handle various formats of legal documents while extracting the most relevant information about plaintiffs and defendants.
+
+## Screenshots
+
+![Alt text](/screenshots/1.png?raw=true "Search")
+
+![Alt text](/screenshots/2.png?raw=true "Upload 1")
+
+![Alt text](/screenshots/3.png?raw=true "Upload 2")
+
+
+# XML Parser API Documentation
+
+This document provides a comprehensive guide to the XML Parser application API endpoints, detailing the process of uploading XML files, extracting plaintiff and defendant information, and searching for uploaded files.
+
+## API Endpoints
+
+### 1. Upload XML File
+
+Uploads an XML file and extracts plaintiff and defendant information.
+
+- **URL**: `/files`
+- **Method**: `POST`
+- **Content-Type**: `multipart/form-data`
+- **Accept**: `application/vnd.api+json`
+
+#### Request
+
+The request should include a file upload field named `file`.
+
+#### Response
+
+##### Success Response (201 Created)
 
 ```json
 {
   "data": {
-    "type": "file",
+    "type": "files",
     "id": "1",
     "attributes": {
       "upload_file_name": "example.xml",
-      "uploaded_time": "2023-05-20T12:34:56Z",
+      "uploaded_time": "2023-06-15T10:30:00Z",
       "plaintiff": "John Doe",
-      "defendants": "ACME Corporation"
+      "defendants": "ABC Corporation, Jane Smith"
     }
   }
 }
+```
 
-Error Response
-  Code: 422 UNPROCESSABLE ENTITY
-  Content:
+##### Error Responses
 
+###### 422 Unprocessable Entity
+
+Returned when the request is malformed, missing required parameters, the uploaded file is not a valid XML file, or when plaintiff/defendant information cannot be extracted.
+
+```json
 {
   "errors": [
     {
       "status": "422",
       "title": "Unprocessable Entity",
-      "detail": "Invalid file type. Please upload an XML file."
+      "detail": "Error message describing the specific issue"
     }
   ]
 }
+```
 
-Search Files
-Search for uploaded files by filename.
-  URL: /files
-  Method: GET
-  URL Params:
-    Required: filename=[string]
+###### 500 Internal Server Error
 
+Returned when an unexpected error occurs on the server.
 
-Success Response
-  Code: 200 OK
-  Content:
+```json
+{
+  "errors": [
+    {
+      "status": "500",
+      "title": "Internal Server Error",
+      "detail": "An unexpected error occurred while processing the file."
+    }
+  ]
+}
+```
 
+### 2. Search Files
+
+Searches for uploaded files based on filename.
+
+- **URL**: `/files`
+- **Method**: `GET`
+- **Accept**: `application/vnd.api+json`
+
+#### Query Parameters
+
+- `filename`: The filename to search for (partial match)
+
+#### Response
+
+##### Success Response (200 OK)
+
+```json
 {
   "data": [
     {
-      "type": "file",
+      "type": "files",
       "id": "1",
       "attributes": {
-        "upload_file_name": "example.xml",
-        "uploaded_time": "2023-05-20T12:34:56Z",
+        "upload_file_name": "example1.xml",
+        "uploaded_time": "2023-06-15T10:30:00Z",
         "plaintiff": "John Doe",
-        "defendants": "ACME Corporation"
+        "defendants": "ABC Corporation, Jane Smith"
       }
     },
-    // ... up to 5 results
-  ]
-}
-
-No Results Response
-If no files are found, an empty data array is returned:
-  Code: 200 OK
-  Content:
-
-{
-  "data": []
-}
-
-Error Handling
-The API uses the following error codes:
-  400 Bad Request
-  404 Not Found
-  422 Unprocessable Entity
-  500 Internal Server Error
-
-Error responses will include an errors array with objects containing status, title, and detail fields. Some errors may include additional meta information.
-
-Example
-{
-  "errors": [
     {
-      "status": "422",
-      "title": "Unprocessable Entity",
-      "detail": "Invalid file format. Please upload a valid XML file."
+      "type": "files",
+      "id": "2",
+      "attributes": {
+        "upload_file_name": "example2.xml",
+        "uploaded_time": "2023-06-15T11:00:00Z",
+        "plaintiff": "Alice Johnson",
+        "defendants": "XYZ Inc., Bob Brown"
+      }
     }
   ]
 }
+```
+
+##### Error Response
+
+###### 500 Internal Server Error
+
+Returned when an unexpected error occurs on the server.
+
+```json
+{
+  "errors": [
+    {
+      "status": "500",
+      "title": "Internal Server Error",
+      "detail": "An unexpected error occurred while searching for files."
+    }
+  ]
+}
+```
+
+## Error Handling
+
+All error responses follow the JSON API specification for error objects. The general structure is:
+
+```json
+{
+  "errors": [
+    {
+      "status": "HTTP_STATUS_CODE",
+      "title": "Brief, human-readable summary of the problem",
+      "detail": "More detailed explanation specific to this occurrence of the problem"
+    }
+  ]
+}
+```
+
+## Notes
+
+- The API adheres to the JSON API specification (https://jsonapi.org/).
+- All responses use the `application/vnd.api+json` content type.
+- The search endpoint returns the top 5 most recent results matching the filename query.
+- Uploaded files must be in XML format with the content type `text/xml` or `application/xml`.
+- The server uses UTC for all timestamps.
+- File IDs are unique and auto-incrementing integers.
+
 
 ### Resource Objects
 

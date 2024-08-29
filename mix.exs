@@ -46,7 +46,8 @@ defmodule XmlParser.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
       {:sweet_xml, "~> 0.7.1"},
-      {:cors_plug, "~> 2.0"}
+      {:cors_plug, "~> 2.0"},
+      {:dotenv, "~> 3.0.0"}
     ]
   end
 

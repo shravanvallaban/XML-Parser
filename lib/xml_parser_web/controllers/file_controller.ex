@@ -57,8 +57,8 @@ defmodule XmlParserWeb.Api.FileController do
     files = Repo.all(query)
 
     conn
-    |> put_resp_content_type("application/vnd.api+json")
-    |> json(FileView.render("index.json", %{data: files}))
+    |> put_status(:ok)
+    |> render("index.json", data: files)
   end
 
    # Validates the file type

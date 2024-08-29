@@ -1,15 +1,5 @@
 import Config
 
-# Configure your database
-config :xml_parser, XmlParser.Repo,
-  username: "postgres",
-  password: "3^_86%>RSJg~",
-  hostname: "localhost",
-  database: "xml_parser_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10,
-  port: 5432
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

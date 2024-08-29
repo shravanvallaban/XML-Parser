@@ -1,4 +1,7 @@
 defmodule XmlParserWeb do
+
+  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  
   def controller do
     quote do
       use Phoenix.Controller, namespace: XmlParserWeb
@@ -34,6 +37,15 @@ defmodule XmlParserWeb do
     quote do
       use Phoenix.Channel
       import XmlParserWeb.Gettext
+    end
+  end
+
+  def verified_routes do
+    quote do
+      use Phoenix.VerifiedRoutes,
+        endpoint: XmlParserWeb.Endpoint,
+        router: XmlParserWeb.Router,
+        statics: XmlParserWeb.static_paths()
     end
   end
 

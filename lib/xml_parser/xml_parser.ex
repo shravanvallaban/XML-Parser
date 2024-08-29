@@ -75,8 +75,11 @@ defmodule XmlParser.XmlParser do
     all_lines = Enum.flat_map(blocks, fn block ->
       Enum.flat_map(block.pars, & &1.lines)
     end)
+    IO.inspect(all_lines, lable: "all_lines")
 
     plaintiff_index = Enum.find_index(all_lines, &is_plaintiff_line?/1)
+
+    IO.inspect(plaintiff_index, lable: "plaintiff_index")
 
     case plaintiff_index do
       nil ->
@@ -95,7 +98,7 @@ defmodule XmlParser.XmlParser do
   # Checks if a line contains the "Plaintiff," keyword
   defp is_plaintiff_line?(line) do
     Enum.any?(line.formatting, fn text ->
-      String.starts_with?(text, "Plaintiff,")
+      String.starts_with?(String.trim(text), "Plaintiff,")
     end)
   end
 
@@ -174,7 +177,7 @@ defmodule XmlParser.XmlParser do
       cond do
         defendant_found ->
           {:halt, {:ok, Enum.reverse(acc)}}
-        String.contains?(block_content, "Defendants.") ->
+        String.contains?(String.trim(block_content), "Defendants.") ->
           {:halt, {:ok, Enum.reverse([block_content | acc])}}
         vs_found ->
           {:cont, {[block_content | acc], vs_found, defendant_found}}

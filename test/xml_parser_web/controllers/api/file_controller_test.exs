@@ -7,7 +7,6 @@ defmodule XmlParserWeb.Api.FileControllerTest do
   @valid_xml_path "test/fixtures/test_file.xml"
   @invalid_xml_path "test/fixtures/invalid_sample.xml"
 
-
   describe "POST /api/files" do
     test "successfully uploads and processes a valid XML file", %{conn: conn} do
       upload = %Plug.Upload{
@@ -19,62 +18,54 @@ defmodule XmlParserWeb.Api.FileControllerTest do
       conn = post(conn, ~p"/api/files", %{file: upload})
 
       response = json_response(conn, 201)
-      assert response["message"] == "File successfully uploaded and processed"
-      assert response["upload_file_name"] == "test_file.xml"
-      assert response["plaintiff"] == "ANGELO ANGELES, an individual,"
-      assert response["defendants"] == "HILL-ROM COMPANY, INC., an Indiana ) corporation; and DOES 1 through 100, inclusive,"
+      assert response["data"]["attributes"]["upload_file_name"] == "test_file.xml"
+      assert response["data"]["attributes"]["plaintiff"] == "ANGELO ANGELES, an individual,"
+      assert response["data"]["attributes"]["defendants"] == "HILL-ROM COMPANY, INC., an Indiana ) corporation; and DOES 1 through 100, inclusive,"
     end
 
     test "returns an error for invalid XML", %{conn: conn} do
       upload = %Plug.Upload{
         path: @invalid_xml_path,
-        filename: "invalid_sample.xml"
+        filename: "invalid_sample.xml",
+        content_type: "application/xml"
       }
 
       conn = post(conn, ~p"/api/files", %{file: upload})
 
-      assert json_response(conn, 422)["error"] =~ "Invalid file type. Please upload an XML file."
+      response = json_response(conn, 422)
+      assert hd(response["errors"])["detail"] == "Invalid file format. Please upload a valid XML file."
     end
   end
 
-  describe "GET /api/files/search" do
+  describe "GET /api/files" do
     test "searches for files by filename", %{conn: conn} do
       {:ok, _file} = %FileSchema{}
       |> FileSchema.changeset(%{
         upload_file_name: "test_file.xml",
         uploaded_time: DateTime.utc_now() |> DateTime.truncate(:second),
-        plaintiff: "John Doe",
-        defendants: "Jane Smith"
+        plaintiff: "ANGELO ANGELES, an individual,",
+        defendants: "HILL-ROM COMPANY, INC., an Indiana ) corporation; and DOES 1 through 100, inclusive,"
       })
       |> Repo.insert()
-      conn = get(conn, "/api/files/search?filename=test_file")
-      assert conn.state == :sent, "Expected the connection state to be :sent, but it was #{inspect(conn.state)}"
-      assert conn.status in 200..299, "Expected a successful status code, but got #{inspect(conn.status)}"
 
-      response = response(conn, conn.status)
+      conn = get(conn, ~p"/api/files?filename=test_file")
 
-      case Jason.decode(response) do
-        {:ok, decoded_response} ->
-          assert is_list(decoded_response["files"]), "Expected 'files' to be a list"
-          assert length(decoded_response["files"]) > 0, "Expected at least one file in the response"
+      response = json_response(conn, 200)
+      assert is_list(response["data"]), "Expected 'data' to be a list"
+      assert length(response["data"]) > 0, "Expected at least one file in the response"
 
-          matching_file = Enum.find(decoded_response["files"], fn file ->
-            file["upload_file_name"] == "test_file.xml"
+      matching_file = Enum.find(response["data"], fn file ->
+        file["attributes"]["upload_file_name"] == "test_file.xml"
+      end)
 
-          end)
-
-          assert matching_file, "Expected to find a file matching the search criteria"
-
-        {:error, _} ->
-          flunk("Failed to decode JSON response: #{inspect(response)}")
-      end
+      assert matching_file, "Expected to find a file matching the search criteria"
     end
 
     test "returns an empty list when no files match", %{conn: conn} do
-      conn = get(conn, "/api/files/search?filename=nonexistent")
+      conn = get(conn, ~p"/api/files/search?filename=nonexistent")
 
       response = json_response(conn, 404)
-      assert response["message"] == "No files found matching the search criteria."
+      assert response["errors"]["detail"] == "Not Found"
     end
   end
 end

@@ -6,16 +6,37 @@
 
 # General application configuration
 import Config
+try do
+  File.stream!(".env")
+  |> Stream.map(&String.trim/1)
+  |> Enum.each(fn line ->
+    [key, value] = String.split(line, "=")
+    System.put_env(key, value)
+  end)
+rescue
+  _ -> IO.puts("No .env file found. Using default configuration.")
+end
+
 
 config :xml_parser,
   ecto_repos: [XmlParser.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+database_url = fn ->
+  username = System.get_env("POSTGRES_USERNAME") || "postgres"
+  password = System.get_env("POSTGRES_PASSWORD") || "postgresuserpassword"
+  host = System.get_env("POSTGRES_HOST") || "localhost"
+  database = System.get_env("POSTGRES_DB") || "xml_parser_dev"
+  port = System.get_env("POSTGRES_PORT") || "5432"
+
+  "postgresql://#{username}:#{password}@#{host}:#{port}/#{database}"
+end
+
+
 config :xml_parser, XmlParser.Repo,
-  url: "postgresql://postgres:postgresuserpassword@localhost/xml_parser_dev",
+  url: database_url.(),
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10,
-  port: 5432
+  pool_size: 10
 
 # Configures the endpoint
 config :xml_parser, XmlParserWeb.Endpoint,
