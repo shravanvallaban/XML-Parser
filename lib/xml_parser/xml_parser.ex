@@ -127,17 +127,19 @@ defmodule XmlParser.XmlParser do
 
   defp find_defendant_content(blocks) do
     blocks
-    |> Enum.reduce_while({[], false}, fn block, {acc, vs_found} ->
+    |> Enum.reduce_while({[], false, false}, fn block, {acc, vs_found, defendant_found} ->
       block_content = extract_block_content(block)
       cond do
+        defendant_found ->
+          {:halt, {:ok, Enum.reverse(acc)}}
         String.contains?(block_content, "Defendants.") ->
           {:halt, {:ok, Enum.reverse([block_content | acc])}}
         vs_found ->
-          {:cont, {[block_content | acc], vs_found}}
+          {:cont, {[block_content | acc], vs_found, defendant_found}}
         String.contains?(block_content, "v.") or String.contains?(block_content, "vs.") ->
-          {:cont, {[block_content | acc], true}}
+          {:cont, {[block_content | acc], true, defendant_found}}
         true ->
-          {:cont, {acc, vs_found}}
+          {:cont, {acc, vs_found, defendant_found}}
       end
     end)
     |> case do
@@ -158,9 +160,27 @@ defmodule XmlParser.XmlParser do
 
   defp parse_defendant_content(content) do
     joined_content = Enum.join(content, " ")
-    case Regex.run(~r/(?:v\.|vs\.)\s*.*?([A-Z][A-Z\s,-]+(?:,\s*INC\.)?.*?(?:inclusive,|inclusive\.))/s, joined_content) do
-      [_, match] -> String.trim(match)
+    case Regex.run(~r/(?:v\.|vs\.)\s*(.*?)(?:(?=\s+Defendants\.)|$)/s, joined_content) do
+      [_, match] ->
+        match
+        |> String.trim()
+        |> extract_defendant_details_edge()
       _ -> "Could not extract valid defendant content"
+    end
+  end
+
+  defp extract_defendant_details_edge(text) do
+    case Regex.run(~r/[A-Z][A-Z\s,;.()'-]+.*?(?:(?:inclusive[,.])|(?:individual[,.])|(?=\s+Defendants\.))/s, text) do
+      [match] ->
+        trimmed_match = String.trim(match)
+        cond do
+          String.ends_with?(trimmed_match, ["inclusive,", "inclusive.", "individual,"]) ->
+            trimmed_match
+          true ->
+            # Remove the last word if it's incomplete (doesn't end with punctuation)
+            Regex.replace(~r/\s+\S+$/, trimmed_match, "")
+        end
+      _ -> text  # If no match found, return the original text
     end
   end
 end
