@@ -2,7 +2,7 @@ defmodule XmlParserWeb.Router do
   use XmlParserWeb, :router
 
   pipeline :api do
-    plug :accepts, ["json"]
+    plug :accepts, ["json-api"]
     plug CORSPlug, origin: ["*"]
   end
 
@@ -10,6 +10,6 @@ defmodule XmlParserWeb.Router do
     pipe_through :api
 
     post "/files", FileController, :create
-    get "/files/search", FileController, :search
+    get "/files", FileController, :search
   end
 end

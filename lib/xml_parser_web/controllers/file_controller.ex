@@ -5,6 +5,7 @@ defmodule XmlParserWeb.Api.FileController do
   alias XmlParser.Repo
   alias XmlParser.Schemas.File, as: FileSchema
   alias XmlParser.XmlParser
+  alias XmlParserWeb.Api.FileView
   import Ecto.Query
 
   @allowed_content_types ["text/xml", "application/xml"]
@@ -21,66 +22,43 @@ defmodule XmlParserWeb.Api.FileController do
 
       conn
       |> put_status(:created)
-      |> json(%{
-        message: "File successfully uploaded and processed",
-        uploaded_time: file.uploaded_time,
-        upload_file_name: file.upload_file_name,
-        plaintiff: file.plaintiff,
-        defendants: file.defendants
-      })
+      |> put_resp_content_type("application/vnd.api+json")
+      |> json(FileView.render("show.json", %{data: file}))
     else
       {:error, :invalid_file_type} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "Invalid file type. Please upload an XML file."})
+        send_error_response(conn, :unprocessable_entity, "Invalid file type. Please upload an XML file.")
 
       {:error, :invalid_file} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "Invalid file format. Please upload a valid XML file."})
+        send_error_response(conn, :unprocessable_entity, "Invalid file format. Please upload a valid XML file.")
 
       {:error, :no_data_extracted} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "Unable to extract plaintiff or defendant information from the file."})
+        send_error_response(conn, :unprocessable_entity, "Unable to extract plaintiff or defendant information from the file.")
 
       {:error, :invalid_data} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "The file does not contain valid plaintiff and defendant information."})
+        send_error_response(conn, :unprocessable_entity, "The file does not contain valid plaintiff and defendant information.")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        errors = format_changeset_errors(changeset)
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "Failed to save file data", details: errors})
+        send_error_response(conn, :unprocessable_entity, "Failed to save file data", format_changeset_errors(changeset))
 
       {:error, reason} ->
-        conn
-        |> put_status(:internal_server_error)
-        |> json(%{error: "An unexpected error occurred", details: reason})
+        send_error_response(conn, :internal_server_error, "An unexpected error occurred", reason)
     end
   end
 
   @doc """
-  Searches for files based on filename.
+  Searches for files based on filename and returns the top 5 most recent results.
   """
   def search(conn, %{"filename" => filename}) do
     query = from f in FileSchema,
-      where: ilike(f.upload_file_name, ^"%#{filename}%")
+      where: ilike(f.upload_file_name, ^"%#{filename}%"),
+      order_by: [desc: f.uploaded_time],
+      limit: 5
 
     files = Repo.all(query)
 
-    case files do
-      [] ->
-        conn
-        |> put_status(:not_found)
-        |> json(%{message: "No files found matching the search criteria."})
-      _ ->
-        conn
-        |> put_status(:ok)
-        |> json(%{files: files})
-    end
+    conn
+    |> put_resp_content_type("application/vnd.api+json")
+    |> json(FileView.render("index.json", %{data: files}))
   end
 
    # Validates the file type
@@ -159,5 +137,12 @@ defmodule XmlParserWeb.Api.FileController do
     end)
     |> Enum.map(fn {k, v} -> "#{k}: #{Enum.join(v, ", ")}" end)
     |> Enum.join("; ")
+  end
+
+  defp send_error_response(conn, status, message, details \\ nil) do
+    conn
+    |> put_status(status)
+    |> put_resp_content_type("application/vnd.api+json")
+    |> json(FileView.render("error.json", %{error: message, details: details}))
   end
 end
