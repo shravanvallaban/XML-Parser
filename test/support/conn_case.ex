@@ -19,15 +19,14 @@ defmodule XmlParserWeb.ConnCase do
 
   using do
     quote do
-      # The default endpoint for testing
-      @endpoint XmlParserWeb.Endpoint
-
-      use XmlParserWeb, :verified_routes
-
-      # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
       import XmlParserWeb.ConnCase
+
+      alias XmlParserWeb.Router.Helpers, as: Routes
+
+      @endpoint XmlParserWeb.Endpoint
+      use XmlParserWeb, :verified_routes
     end
   end
 

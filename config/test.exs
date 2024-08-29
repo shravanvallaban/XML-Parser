@@ -31,3 +31,7 @@ config :logger, level: :warning
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+config :xml_parser, XmlParser.Repo, pool: Ecto.Adapters.SQL.Sandbox
+
+config :logger, level: :warn

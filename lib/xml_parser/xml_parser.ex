@@ -2,28 +2,54 @@
 defmodule XmlParser.XmlParser do
   import SweetXml
   require Logger
-  def parse(xml_content) do
-    cleaned_content = remove_bom(xml_content)
-    parsed_xml = SweetXml.parse(cleaned_content)
 
-    %{
-      plaintiffs: safe_extract_plaintiffs(parsed_xml),
-      defendants: safe_extract_defendants(parsed_xml)
-    }
+  @doc """
+  Parses the XML content and extracts plaintiff and defendant information.
+  """
+  def parse(xml_content) do
+    case validate_input(xml_content) do
+      :ok ->
+        try do
+          cleaned_content = remove_byte_order_mark(xml_content)
+          parsed_xml = SweetXml.parse(cleaned_content)
+
+          %{
+            plaintiffs: extract_plaintiff_safely(parsed_xml),
+            defendants: extract_defendant_safely(parsed_xml)
+          }
+        rescue
+          e in [SweetXml.SweetXmlException, ErlangError, ArgumentError] ->
+            Logger.warning("Failed to parse XML: #{inspect(e)}")
+            {:error, "Failed to parse XML"}
+        catch
+          :exit, reason ->
+            Logger.warning("XML parsing exited unexpectedly: #{inspect(reason)}")
+            {:error, "Failed to parse XML"}
+        end
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
-  defp remove_bom(<<0xEF, 0xBB, 0xBF, rest::binary>>), do: rest
-  defp remove_bom(content), do: content
+  defp validate_input(nil), do: {:error, "Input cannot be nil"}
+  defp validate_input(""), do: {:error, "Input cannot be empty"}
+  defp validate_input(_), do: :ok
 
-  defp safe_extract_plaintiffs(xml) do
+  # Removes the Byte Order Mark (BOM) if present
+  defp remove_byte_order_mark(<<0xEF, 0xBB, 0xBF, rest::binary>>), do: rest
+  defp remove_byte_order_mark(content), do: content
+
+  # Safely extracts plaintiff information, returning an error message if extraction fails
+  defp extract_plaintiff_safely(xml) do
     try do
-      extract_plaintiffs(xml)
+      extract_plaintiff_info(xml)
     rescue
       _ -> "Error extracting plaintiff"
     end
   end
 
-  defp extract_plaintiffs(xml) do
+  # Main function to extract plaintiff information from the XML
+  defp extract_plaintiff_info(xml) do
     blocks = xpath(xml, ~x"//block"l,
       text: ~x"./text"o,
       pars: [
@@ -37,14 +63,15 @@ defmodule XmlParser.XmlParser do
 
     Logger.debug("Processing #{length(blocks)} blocks")
 
-    result = find_plaintiff_content(blocks)
+    result = locate_plaintiff_content(blocks)
 
     Logger.debug("Extraction result: #{inspect(result)}")
 
     result
   end
 
-  defp find_plaintiff_content(blocks) do
+  # Locates and extracts the plaintiff content from the XML blocks
+  defp locate_plaintiff_content(blocks) do
     all_lines = Enum.flat_map(blocks, fn block ->
       Enum.flat_map(block.pars, & &1.lines)
     end)
@@ -61,61 +88,67 @@ defmodule XmlParser.XmlParser do
                        |> Enum.find_index(&is_county_line?/1)
 
         start_index = if county_index, do: plaintiff_index - county_index, else: 0
-        extract_plaintiff(all_lines, start_index, plaintiff_index - 1)
+        extract_plaintiff_details(all_lines, start_index, plaintiff_index - 1)
     end
   end
 
+  # Checks if a line contains the "Plaintiff," keyword
   defp is_plaintiff_line?(line) do
     Enum.any?(line.formatting, fn text ->
       String.starts_with?(text, "Plaintiff,")
     end)
   end
 
+  # Checks if a line contains any variant of "county"
   defp is_county_line?(line) do
     content = Enum.join(line.formatting, " ")
     String.contains?(content, "COUNTY") or String.contains?(content, "County") or String.contains?(content, "county")
   end
 
-  defp extract_plaintiff(lines, start_index, end_index) do
+  # Extracts plaintiff details from the relevant lines
+  defp extract_plaintiff_details(lines, start_index, end_index) do
     relevant_lines = Enum.slice(lines, start_index..end_index)
     content = Enum.map_join(relevant_lines, " ", &Enum.join(&1.formatting, " "))
 
     cond do
-      result = extract_with_individual(content) -> result
-      result = extract_with_inclusive(content) -> result
-      true -> extract_default(content)
+      result = extract_with_individual_keyword(content) -> result
+      result = extract_with_inclusive_keyword(content) -> result
+      true -> extract_default_content(content)
     end
   end
 
-  defp extract_with_individual(content) do
+  # Extracts content with "individual" keyword
+  defp extract_with_individual_keyword(content) do
     case Regex.run(~r/([A-Z][^.]*?individual(?:,|;|).*?)\s*$/i, content) do
       [_, match] -> String.trim(match)
       nil -> nil
     end
   end
 
-  defp extract_with_inclusive(content) do
+  # Extracts content with "inclusive" keyword
+  defp extract_with_inclusive_keyword(content) do
     case Regex.run(~r/([A-Z].*?inclusive(?:,|\.|).*?)\s*$/i, content) do
       [_, match] -> String.trim(match)
       nil -> nil
     end
   end
 
-  defp extract_default(content) do
+  # Extracts default content when no specific keyword is found
+  defp extract_default_content(content) do
     String.trim(content)
   end
 
-  defp safe_extract_defendants(xml) do
+  # Safely extracts defendant information, returning an error message if extraction fails
+  defp extract_defendant_safely(xml) do
     try do
-      extract_defendant_details(xml)
+      extract_defendant_info(xml)
     rescue
       _ -> "Error extracting defendants"
     end
   end
 
-
-
-  def extract_defendant_details(xml) do
+  # Main function to extract defendant information from the XML
+  def extract_defendant_info(xml) do
     blocks = xpath(xml, ~x"//block"l,
       text: ~x"./text"o,
       pars: [
@@ -127,16 +160,17 @@ defmodule XmlParser.XmlParser do
       ]
     )
 
-    case find_defendant_content(blocks) do
-      {:ok, content} -> parse_defendant_content(content)
+    case locate_defendant_content(blocks) do
+      {:ok, content} -> parse_defendant_details(content)
       {:error, _} -> "Could not extract defendant details"
     end
   end
 
-  defp find_defendant_content(blocks) do
+  # Locates the defendant content within the XML blocks
+  defp locate_defendant_content(blocks) do
     blocks
     |> Enum.reduce_while({[], false, false}, fn block, {acc, vs_found, defendant_found} ->
-      block_content = extract_block_content(block)
+      block_content = extract_block_text(block)
       cond do
         defendant_found ->
           {:halt, {:ok, Enum.reverse(acc)}}
@@ -156,7 +190,8 @@ defmodule XmlParser.XmlParser do
     end
   end
 
-  defp extract_block_content(block) do
+  # Extracts text content from a block
+  defp extract_block_text(block) do
     block.pars
     |> Enum.flat_map(fn par ->
       Enum.flat_map(par.lines, fn line ->
@@ -166,18 +201,20 @@ defmodule XmlParser.XmlParser do
     |> Enum.join(" ")
   end
 
-  defp parse_defendant_content(content) do
+  # Parses the defendant content to extract relevant details
+  defp parse_defendant_details(content) do
     joined_content = Enum.join(content, " ")
     case Regex.run(~r/(?:v\.|vs\.)\s*(.*?)(?:(?=\s+Defendants\.)|$)/s, joined_content) do
       [_, match] ->
         match
         |> String.trim()
-        |> extract_defendant_details_edge()
+        |> extract_defendant_details_refined()
       _ -> "Could not extract valid defendant content"
     end
   end
 
-  defp extract_defendant_details_edge(text) do
+  # Refines the extracted defendant details
+  defp extract_defendant_details_refined(text) do
     case Regex.run(~r/[A-Z][A-Z\s,;.()'-]+.*?(?:(?:inclusive[,.])|(?:individual[,.])|(?=\s+Defendants\.))/s, text) do
       [match] ->
         trimmed_match = String.trim(match)
