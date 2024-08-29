@@ -7,42 +7,6 @@ defmodule XmlParserWeb.Api.FileController do
   alias XmlParser.XmlParser
   import Ecto.Query
 
-  # def create(conn, %{"file" => file_params}) do
-  #   with {:ok, file_content} <- read_file(file_params),
-  #        {:ok, parsed_data} <- safe_parse(file_content),
-  #        {:ok, file} <- create_file(file_params, parsed_data) do
-
-  #     conn
-  #     |> put_status(:created)
-  #     |> json(%{
-  #       message: "Successfully Uploaded",
-  #       uploaded_time: file.uploaded_time,
-  #       upload_file_name: file.upload_file_name,
-  #       plaintiff: file.plaintiff,
-  #       defendants: file.defendants
-  #     })
-  #   else
-  #     {:error, :no_data_extracted} ->
-  #       Logger.error("No plaintiff or defendant data could be extracted from the XML")
-  #       conn
-  #       |> put_status(:unprocessable_entity)
-  #       |> json(%{error: "No plaintiff or defendant data could be extracted from the XML"})
-  #       |> halt()
-  #     {:error, %Ecto.Changeset{} = changeset} ->
-  #       Logger.error("Invalid data: #{inspect(changeset.errors)}")
-  #       conn
-  #       |> put_status(:unprocessable_entity)
-  #       |> json(%{error: "Invalid data", details: changeset_error_to_string(changeset)})
-  #       |> halt()
-  #     {:error, reason} ->
-  #       Logger.error("Unexpected error: #{inspect(reason)}")
-  #       conn
-  #       |> put_status(:internal_server_error)
-  #       |> json(%{error: "An unexpected error occurred", details: inspect(reason)})
-  #       |> halt()
-  #   end
-  # end
-
   def create(conn, %{"file" => file_params}) do
     with {:ok, file_content} <- read_file(file_params),
          {:ok, parsed_data} <- safe_parse(file_content),

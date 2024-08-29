@@ -1,7 +1,7 @@
 # lib/xml_parser/xml_parser.ex
 defmodule XmlParser.XmlParser do
   import SweetXml
-
+  require Logger
   def parse(xml_content) do
     cleaned_content = remove_bom(xml_content)
     parsed_xml = SweetXml.parse(cleaned_content)
@@ -15,16 +15,6 @@ defmodule XmlParser.XmlParser do
   defp remove_bom(<<0xEF, 0xBB, 0xBF, rest::binary>>), do: rest
   defp remove_bom(content), do: content
 
-
-
-  defp safe_extract_defendants(xml) do
-    try do
-      extract_defendant_details(xml)
-    rescue
-      _ -> "Error extracting defendants"
-    end
-  end
-
   defp safe_extract_plaintiffs(xml) do
     try do
       extract_plaintiffs(xml)
@@ -34,78 +24,96 @@ defmodule XmlParser.XmlParser do
   end
 
   defp extract_plaintiffs(xml) do
-    xml
-    |> xpath(~x"//block"l,
+    blocks = xpath(xml, ~x"//block"l,
       text: ~x"./text"o,
       pars: [
         ~x".//par"l,
         lines: [
           ~x".//line"l,
           formatting: ~x".//formatting/text()"sl
-        ],
-        has_plaintiff: ~x"boolean(.//formatting[starts-with(text(), 'Plaintiff,')])"b
+        ]
       ]
     )
-    |> Enum.find_value(&process_blocking/1)
+
+    Logger.debug("Processing #{length(blocks)} blocks")
+
+    result = find_plaintiff_content(blocks)
+
+    Logger.debug("Extraction result: #{inspect(result)}")
+
+    result
   end
 
-  defp process_blocking(%{text: _, pars: pars}) do
-    pars
-    |> Enum.reduce_while({[], false}, fn par, {acc, found} ->
-      if found do
-        {:halt, {acc, found}}
-      else
-        case process_par(par, acc) do
-          {:found, new_acc} -> {:halt, {new_acc, true}}
-          {:not_found, new_acc} -> {:cont, {new_acc, false}}
-        end
-      end
+  defp find_plaintiff_content(blocks) do
+    all_lines = Enum.flat_map(blocks, fn block ->
+      Enum.flat_map(block.pars, & &1.lines)
     end)
-    |> case do
-      {preceding_lines, true} -> extract_result(preceding_lines)
-      _ -> nil
+
+    plaintiff_index = Enum.find_index(all_lines, &is_plaintiff_line?/1)
+
+    case plaintiff_index do
+      nil ->
+        Logger.debug("No plaintiff line found")
+        "Error extracting plaintiff"
+      _ ->
+        county_index = Enum.take(all_lines, plaintiff_index)
+                       |> Enum.reverse()
+                       |> Enum.find_index(&is_county_line?/1)
+
+        start_index = if county_index, do: plaintiff_index - county_index, else: 0
+        extract_plaintiff(all_lines, start_index, plaintiff_index - 1)
     end
   end
 
-  defp process_par(%{lines: lines, has_plaintiff: true}, acc) do
-    {plaintiff_line, preceding_lines} =
-      Enum.split_with(lines, &Enum.any?(&1.formatting, fn text -> String.starts_with?(text, "Plaintiff,") end))
-    new_acc = preceding_lines ++ acc
-    {:found, Enum.reverse(new_acc) ++ plaintiff_line}
-  end
-
-  defp process_par(%{lines: lines, has_plaintiff: false}, acc) do
-    {:not_found, lines ++ acc}
-  end
-
-  defp extract_result(lines) do
-    {preceding_lines, [plaintiff_line | _]} = Enum.split_while(lines, fn line ->
-      not Enum.any?(line.formatting, &String.starts_with?(&1, "Plaintiff,"))
+  defp is_plaintiff_line?(line) do
+    Enum.any?(line.formatting, fn text ->
+      String.starts_with?(text, "Plaintiff,")
     end)
-
-    preceding_content_lines = preceding_lines
-      |> Enum.reverse()
-      |> Enum.reduce_while({[], 0}, fn line, {acc, length} ->
-        line_content = Enum.join(line.formatting, " ")
-        new_length = length + String.length(line_content)
-        if new_length < 10 or length == 0 do
-          {:cont, {[line_content | acc], new_length}}
-        else
-          {:halt, {[line_content | acc], new_length}}
-        end
-      end)
-      |> elem(0)
-
-    preceding_content = preceding_content_lines
-      |> Enum.join(" ")
-      |> String.trim()
-
-    if String.length(preceding_content) >= 10 do
-      preceding_content = String.slice(preceding_content, 0..999)
-    end
-
-    preceding_content
   end
+
+  defp is_county_line?(line) do
+    content = Enum.join(line.formatting, " ")
+    String.contains?(content, "COUNTY") or String.contains?(content, "County") or String.contains?(content, "county")
+  end
+
+  defp extract_plaintiff(lines, start_index, end_index) do
+    relevant_lines = Enum.slice(lines, start_index..end_index)
+    content = Enum.map_join(relevant_lines, " ", &Enum.join(&1.formatting, " "))
+
+    cond do
+      result = extract_with_individual(content) -> result
+      result = extract_with_inclusive(content) -> result
+      true -> extract_default(content)
+    end
+  end
+
+  defp extract_with_individual(content) do
+    case Regex.run(~r/([A-Z][^.]*?individual(?:,|;|).*?)\s*$/i, content) do
+      [_, match] -> String.trim(match)
+      nil -> nil
+    end
+  end
+
+  defp extract_with_inclusive(content) do
+    case Regex.run(~r/([A-Z].*?inclusive(?:,|\.|).*?)\s*$/i, content) do
+      [_, match] -> String.trim(match)
+      nil -> nil
+    end
+  end
+
+  defp extract_default(content) do
+    String.trim(content)
+  end
+
+  defp safe_extract_defendants(xml) do
+    try do
+      extract_defendant_details(xml)
+    rescue
+      _ -> "Error extracting defendants"
+    end
+  end
+
+
 
   def extract_defendant_details(xml) do
     blocks = xpath(xml, ~x"//block"l,
