@@ -70,7 +70,6 @@ The frontend is built with React.
 
 1. Navigate to the root directory:
 ```
-mkdir assets
 cd assets
 ```
 2. Install dependencies:
@@ -317,101 +316,98 @@ All error responses follow the JSON API specification for error objects. The gen
 | attributes.defendants        | string | Extracted defendant information from the XML file                |
 
 
-# XML Parser Test Suite
+# XML Parser Test Documentation
 
-This README provides information on how to run the test files for the XML Parser project and explains the purpose of each test file.
+This document provides instructions on how to run the tests for the XML Parser project and explains the purpose and content of each test file.
 
-## Running Tests
+## Running the Tests
 
-To run all tests, use the following command in your terminal:
+To run all the tests in the XML Parser project, follow these steps:
+
+1. Open a terminal and navigate to the root directory of the XML Parser project.
+2. Ensure that all dependencies are installed by running:
+   ```
+   mix deps.get
+   ```
+3. Run the tests using the following command:
+   ```
+   mix test
+   ```
+
+This command will run all the tests in the `test` directory and its subdirectories.
+
+To run a specific test file, you can specify the file path:
 
 ```
-mix test
+mix test test/path/to/specific_test.exs
 ```
 
-To run a specific test file, use:
+For example, to run only the XML Parser tests:
 
-```
-mix test path/to/test_file.exs
-```
-
-## Test Files
-
-### 1. file_test.exs
-
-**Path**: `test/xml_parser/schemas/file_test.exs`
-
-**Purpose**: Tests the `FileSchema` module, which is responsible for validating and creating changesets for file uploads.
-
-**How to run**:
-```
-mix test test/xml_parser/schemas/file_test.exs
-```
-
-**What it tests**:
-- Creation of valid changesets with proper attributes
-- Required fields (upload_file_name, uploaded_time)
-- Validation of plaintiff as a string
-- Validation of defendants as a list of strings
-
-### 2. file_controller_test.exs
-
-**Path**: `test/xml_parser_web/controllers/api/file_controller_test.exs`
-
-**Purpose**: Tests the `FileController` module, which handles file uploads and searches.
-
-**How to run**:
-```
-mix test test/xml_parser_web/controllers/api/file_controller_test.exs
-```
-
-**What it tests**:
-- Successful upload and processing of a valid XML file
-- Error handling for invalid XML uploads
-- File search functionality
-- Handling of searches with no matching results
-
-### 3. xml_parser_test.exs
-
-**Path**: `test/xml_parser/xml_parser_test.exs`
-
-**Purpose**: Tests the `XmlParser` module, which is responsible for parsing XML content.
-
-**How to run**:
 ```
 mix test test/xml_parser/xml_parser_test.exs
 ```
 
-**What it tests**:
-- Successful parsing of valid XML
-- Error handling for invalid XML
-- Handling of empty string input
-- Handling of nil input
+## Test File Explanations
 
-### 4. error_json_test.exs
+### 1. file_controller_test.exs
 
-**Path**: `test/xml_parser_web/error_json_test.exs`
+**File Path**: `test/xml_parser_web/controllers/api/file_controller_test.exs`
 
-**Purpose**: Tests the `ErrorJSON` module, which handles JSON responses for errors.
+This file contains tests for the `FileController`, which handles file uploads and searches.
 
-**How to run**:
-```
-mix test test/xml_parser_web/error_json_test.exs
-```
+**Test Descriptions**:
 
-**What it tests**:
-- Rendering of 404 (Not Found) error responses
-- Rendering of 500 (Internal Server Error) error responses
+- `POST /api/files`:
+  - Tests successful upload and processing of a valid XML file.
+  - Tests error handling for invalid XML files.
 
-## Test Fixtures
+- `GET /api/files`:
+  - Tests searching for files by filename.
+  - Tests the response when no files match the search criteria.
 
-Some tests use fixture files located in the `test/fixtures` directory:
+These tests ensure that the API endpoints for file upload and search are working correctly, handling both successful and error cases.
 
-- `test_file.xml`: A valid XML file used for testing successful parsing and uploads.
-- `invalid_sample.xml`: An invalid XML file used for testing error handling.
+### 2. error_json_test.exs
 
-Ensure these files are present and contain appropriate test data before running the tests.
+**File Path**: `test/xml_parser_web/error_json_test.exs`
 
-## Note
+This file tests the `ErrorJSON` module, which is responsible for rendering error responses.
 
-Make sure you have all necessary dependencies installed and your database properly set up before running the tests. If you encounter any issues, check the project's main README for setup instructions or consult the project maintainers.
+**Test Descriptions**:
+
+- Tests rendering of a 404 (Not Found) error.
+- Tests rendering of a 500 (Internal Server Error) error.
+
+These tests ensure that the application generates proper JSON responses for common HTTP error codes.
+
+### 3. xml_parser_test.exs
+
+**File Path**: `test/xml_parser/xml_parser_test.exs`
+
+This file contains tests for the `XmlParser` module, which is responsible for parsing XML content.
+
+**Test Descriptions**:
+
+- Tests successful parsing of valid XML content.
+- Tests error handling for invalid XML content.
+- Tests handling of empty string input.
+- Tests handling of nil input.
+
+These tests ensure that the XML parser can handle various input scenarios, including both valid and invalid cases.
+
+### 4. file_test.exs
+
+**File Path**: `test/xml_parser/schemas/file_test.exs`
+
+This file tests the `File` schema, which represents the database model for uploaded files.
+
+**Test Descriptions**:
+
+- Tests creation of a valid changeset with proper attributes.
+- Tests that `upload_file_name` is required.
+- Tests that `uploaded_time` is required.
+- Tests validation of the `plaintiff` field as a string.
+- Tests validation of the `defendants` field as a list of strings.
+
+These tests ensure that the `File` schema correctly validates input data before it's inserted into the database.
