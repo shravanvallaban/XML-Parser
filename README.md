@@ -121,7 +121,7 @@ The algorithm for extracting plaintiff and defendant information from the XML fi
 
 ### Defendant Extraction
 
-1.The XML content is parsed into blocks, paragraphs, and lines.
+1. The XML content is parsed into blocks, paragraphs, and lines.
 2. The algorithm searches for "v." or "vs." to identify the start of defendant information.
 3. It then looks for "Defendants." to identify the end of defendant information.
 4. The content between these markers is extracted.
@@ -129,7 +129,6 @@ The algorithm for extracting plaintiff and defendant information from the XML fi
 * Looking for text starting with an uppercase letter.
 * Including content up to "inclusive," or "inclusive." if present.
 * If not present, it includes content up to but not including "Defendants."
-
 6. The last word is removed if it appears to be incomplete (doesn't end with punctuation).
 
 This algorithm aims to handle various formats of legal documents while extracting the most relevant information about plaintiffs and defendants.
