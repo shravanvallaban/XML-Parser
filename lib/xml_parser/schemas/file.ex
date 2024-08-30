@@ -1,6 +1,7 @@
 defmodule XmlParser.Schemas.File do
   use Ecto.Schema
   import Ecto.Changeset
+  # Derive JSON encoder for specified fields
   @derive {Jason.Encoder, only: [:id, :upload_file_name, :uploaded_time, :plaintiff, :defendants, :inserted_at, :updated_at]}
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -13,6 +14,7 @@ defmodule XmlParser.Schemas.File do
     timestamps()
   end
 
+  # Changeset function for validating and casting attributes
   def changeset(file, attrs) do
     file
     |> cast(attrs, [:upload_file_name, :uploaded_time, :plaintiff, :defendants])

@@ -1,9 +1,7 @@
 defmodule XmlParserWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :xml_parser
 
-  # The session will be stored in the cookie and signed,
-  # this means its contents can be read but not tampered with.
-  # Set :encryption_salt if you would also like to encrypt it.
+  # Session configuration
   @session_options [
     store: :cookie,
     key: "_xml_parser_key",
@@ -11,27 +9,25 @@ defmodule XmlParserWeb.Endpoint do
     same_site: "Lax"
   ]
 
+  # Socket configuration for LiveView
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
-  # Serve at "/" the static files from "priv/static" directory.
-  #
-  # You should set gzip to true if you are running phx.digest
-  # when deploying your static files in production.
+  # Serve static files
   plug Plug.Static,
     at: "/",
     from: :xml_parser,
     gzip: false,
     only: ~w(assets fonts images favicon.ico robots.txt)
 
-  # Code reloading can be explicitly enabled under the
-  # :code_reloader configuration of your endpoint.
+  # Code reloading configuration
   if code_reloading? do
     plug Phoenix.CodeReloader
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :xml_parser
   end
 
+  # Request logging for LiveDashboard
   plug Phoenix.LiveDashboard.RequestLogger,
     param_key: "request_logger",
     cookie_key: "request_logger"
@@ -39,6 +35,7 @@ defmodule XmlParserWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # Request parsing configuration
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
@@ -48,7 +45,7 @@ defmodule XmlParserWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
 
-  # Add this line to enable CORS
+  # Enable CORS
   plug CORSPlug, origin: ["*"]
 
   plug XmlParserWeb.Router

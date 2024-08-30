@@ -31,6 +31,7 @@ defmodule XmlParser.XmlParser do
     end
   end
 
+  # Validates the input to ensure it's not nil or empty
   defp validate_input(nil), do: {:error, "Input cannot be nil"}
   defp validate_input(""), do: {:error, "Input cannot be empty"}
   defp validate_input(_), do: :ok

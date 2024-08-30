@@ -8,10 +8,17 @@ defmodule XmlParserWeb.Api.FileController do
   alias XmlParserWeb.Api.FileView
   import Ecto.Query
 
+  # List of allowed MIME types for uploaded files
   @allowed_content_types ["text/xml", "application/xml"]
 
   @doc """
   Handles the file upload, parsing, and storage process.
+  This function orchestrates the entire process of file handling:
+  1. Validates the file type
+  2. Reads the uploaded file
+  3. Parses the XML content
+  4. Validates the parsed data
+  5. Saves the file data to the database
   """
   def create(conn, %{"file" => file_params}) do
     with :ok <- validate_file_type(file_params),
@@ -20,11 +27,13 @@ defmodule XmlParserWeb.Api.FileController do
          :ok <- validate_parsed_data(parsed_data),
          {:ok, file} <- save_file_data(file_params, parsed_data) do
 
+      # If all steps succeed, return a success response
       conn
       |> put_status(:created)
       |> put_resp_content_type("application/vnd.api+json")
       |> json(FileView.render("show.json", %{data: file}))
     else
+      # Handle various error cases
       {:error, :invalid_file_type} ->
         send_error_response(conn, :unprocessable_entity, "Invalid file type. Please upload an XML file.")
 
@@ -47,6 +56,8 @@ defmodule XmlParserWeb.Api.FileController do
 
   @doc """
   Searches for files based on filename and returns the top 5 most recent results.
+  This function performs a case-insensitive search on the upload_file_name field,
+  orders the results by upload time (descending), and limits the results to 5.
   """
   def search(conn, %{"filename" => filename}) do
     query = from f in FileSchema,
@@ -61,7 +72,9 @@ defmodule XmlParserWeb.Api.FileController do
     |> render("index.json", data: files)
   end
 
-   # Validates the file type
+  # Private helper functions
+
+  # Validates the file type against the list of allowed MIME types
    defp validate_file_type(%{content_type: content_type}) do
     if content_type in @allowed_content_types do
       :ok
@@ -71,6 +84,7 @@ defmodule XmlParserWeb.Api.FileController do
   end
 
   # Reads the content of the uploaded file
+  # Returns {:ok, content} if successful, {:error, :invalid_file} otherwise
   defp read_uploaded_file(file_params) do
     case File.read(file_params.path) do
       {:ok, content} ->
@@ -82,7 +96,8 @@ defmodule XmlParserWeb.Api.FileController do
     end
   end
 
-  # Safely parses the XML content
+  # Safely parses the XML content using the XmlParser module
+  # Returns {:ok, parsed_data} if successful, {:error, reason} otherwise
   defp parse_xml_safely(file_content) do
     case XmlParser.parse(file_content) do
       %{plaintiffs: "Error extracting plaintiff", defendants: "Error extracting defendants"} ->
@@ -98,7 +113,7 @@ defmodule XmlParserWeb.Api.FileController do
       {:error, :invalid_file}
   end
 
-  # Validates that both plaintiff and defendant data are present
+  # Validates that both plaintiff and defendant data are present and non-empty
   defp validate_parsed_data(%{plaintiffs: plaintiffs, defendants: defendants}) do
     if is_binary(plaintiffs) and is_binary(defendants) and
        plaintiffs != "" and defendants != "" do
@@ -109,6 +124,7 @@ defmodule XmlParserWeb.Api.FileController do
   end
 
   # Saves the parsed file data to the database
+  # Returns {:ok, file} if successful, {:error, changeset} otherwise
   defp save_file_data(file_params, parsed_data) do
     changeset = %FileSchema{}
     |> FileSchema.changeset(%{
@@ -139,6 +155,7 @@ defmodule XmlParserWeb.Api.FileController do
     |> Enum.join("; ")
   end
 
+  # Sends an error response with the given status, message, and optional details
   defp send_error_response(conn, status, message, details \\ nil) do
     conn
     |> put_status(status)
