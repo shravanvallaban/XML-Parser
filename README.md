@@ -410,3 +410,48 @@ This file tests the `File` schema, which represents the database model for uploa
 - Tests validation of the `defendants` field as a list of strings.
 
 These tests ensure that the `File` schema correctly validates input data before it's inserted into the database.
+
+
+## Alternative Approach: NLP-based Identification
+
+Instead of using an XML parser, we could leverage Natural Language Processing (NLP) to identify plaintiffs and defendants. This approach could be more flexible and potentially handle a wider variety of document formats.
+
+### Proposed NLP Approach
+
+1. **Text Extraction**: Convert XML to plain text.
+
+2. **Named Entity Recognition (NER)**: Use an NLP model to identify person and organization names.
+
+3. **Context Analysis**: Implement rules to determine which entities are plaintiffs or defendants based on their proximity to keywords like "Plaintiff," "Defendant," "v.," etc.
+
+4. **API Integration**: Utilize an NLP API service (e.g., Google's Natural Language API, or SpaCy) for the NER task.
+
+### Elixir Implementation Outline
+
+```elixir
+defmodule NLPParser do
+  @nlp_api_url "https://api.nlp-service.com/analyze"
+
+  def extract_parties(text) do
+    with {:ok, entities} <- perform_ner(text),
+         {:ok, classified} <- classify_entities(entities, text) do
+      {:ok, classified}
+    else
+      error -> {:error, error}
+    end
+  end
+
+  defp perform_ner(text) do
+    # Call NLP API for Named Entity Recognition
+    # Return list of identified entities
+  end
+
+  defp classify_entities(entities, text) do
+    # Implement logic to classify entities as plaintiffs or defendants
+    # based on their context in the text
+  end
+end
+
+This approach could provide more flexibility in handling various document formats and potentially improve accuracy in complex cases.
+
+This addition provides a brief overview of an NLP-based approach, including a basic Elixir module structure for implementation. It's concise while also giving an idea of how NLP could be used as an alternative to XML parsing for this task.
