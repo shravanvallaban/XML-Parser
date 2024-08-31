@@ -428,7 +428,7 @@ Instead of using an XML parser, we could leverage Natural Language Processing (N
 
 ### Elixir Implementation Outline
 
-```elixir
+```
 defmodule NLPParser do
   @nlp_api_url "https://api.nlp-service.com/analyze"
 
@@ -451,6 +451,7 @@ defmodule NLPParser do
     # based on their context in the text
   end
 end
+```
 
 This approach could provide more flexibility in handling various document formats and potentially improve accuracy in complex cases.
 
