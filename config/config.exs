@@ -19,11 +19,11 @@ config :xml_parser,
 
 # Database URL configuration function
 database_url = fn ->
-  username = System.get_env("POSTGRES_USERNAME") || "postgres"
-  password = System.get_env("POSTGRES_PASSWORD") || "postgresuserpassword"
-  host = System.get_env("POSTGRES_HOST") || "localhost"
-  database = System.get_env("POSTGRES_DB") || "xml_parser_dev"
-  port = System.get_env("POSTGRES_PORT") || "5432"
+  username = System.get_env("POSTGRES_USERNAME")
+  password = System.get_env("POSTGRES_PASSWORD")
+  host = System.get_env("POSTGRES_HOST")
+  database = System.get_env("POSTGRES_DB")
+  port = System.get_env("POSTGRES_PORT")
 
   "postgresql://#{username}:#{password}@#{host}:#{port}/#{database}"
 end
