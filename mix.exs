@@ -47,7 +47,8 @@ defmodule XmlParser.MixProject do
       {:bandit, "~> 1.5"},
       {:sweet_xml, "~> 0.7.1"},
       {:cors_plug, "~> 2.0"},
-      {:dotenv, "~> 3.0.0"}
+      {:dotenv, "~> 3.0.0"},
+      {:hackney, "~> 1.9"}
     ]
   end
 
