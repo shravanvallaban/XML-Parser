@@ -8,7 +8,7 @@ import Config
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :xml_parser, XmlParserWeb.Endpoint,
-  http: [port: 4000],
+  http: [ip: {0, 0, 0, 0}, port: 4000],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
