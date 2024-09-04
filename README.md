@@ -2,6 +2,9 @@
 
 This project is a web application that allows users to upload XML files containing legal documents, extracts plaintiff and defendant information, and provides a search functionality for uploaded files.
 
+## Web Application link (live) - 9/4/24
+http://35.222.155.82:3000/
+
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
