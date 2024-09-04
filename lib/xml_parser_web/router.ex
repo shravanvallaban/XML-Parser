@@ -4,7 +4,7 @@ defmodule XmlParserWeb.Router do
   # Define the API pipeline
   pipeline :api do
     plug :accepts, ["json-api"]
-    plug CORSPlug, origin: ["*"]
+    plug CORSPlug, origin: ["http://localhost:3000"]
   end
 
   # Define API routes
