@@ -60,6 +60,8 @@ POSTGRES_PASSWORD=your_password
 POSTGRES_HOST=localhost
 POSTGRES_DB=xml_parser_dev
 POSTGRES_PORT=5432
+DATABASE_URL=<database-url>
+PHX_HOST=localhost
 ```
 
 ## Frontend Setup
