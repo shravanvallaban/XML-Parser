@@ -86,12 +86,8 @@ npm install
 ```
 mix phx.server
 ```
-2. In a separate terminal, start the frontend development server:
-```
-cd assets
-npm start
-```
-3. Visit http://localhost:3000 in your web browser to access the application.
+
+2. Visit http://localhost:3000 in your web browser to access the application.
 
 ## API Endpoints
 The backend provides the following API endpoints:
