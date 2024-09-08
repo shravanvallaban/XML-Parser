@@ -109,7 +109,6 @@ defmodule XmlParser.XmlParser do
   # Extracts plaintiff details from the relevant lines
   defp extract_plaintiff_details(lines, start_index, end_index) do
     relevant_lines = Enum.slice(lines, start_index..end_index)
-    IO.inspect(relevant_lines, label: "The relevant lines for the plaintiff content")
     content = Enum.map_join(relevant_lines, " ", &Enum.join(&1.formatting, " "))
 
     cond do
