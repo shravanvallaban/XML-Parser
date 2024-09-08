@@ -76,11 +76,8 @@ defmodule XmlParser.XmlParser do
     all_lines = Enum.flat_map(blocks, fn block ->
       Enum.flat_map(block.pars, & &1.lines)
     end)
-    IO.inspect(all_lines, lable: "all_lines")
 
     plaintiff_index = Enum.find_index(all_lines, &is_plaintiff_line?/1)
-
-    IO.inspect(plaintiff_index, lable: "plaintiff_index")
 
     case plaintiff_index do
       nil ->
@@ -112,6 +109,7 @@ defmodule XmlParser.XmlParser do
   # Extracts plaintiff details from the relevant lines
   defp extract_plaintiff_details(lines, start_index, end_index) do
     relevant_lines = Enum.slice(lines, start_index..end_index)
+    IO.inspect(relevant_lines, label: "The relevant lines for the plaintiff content")
     content = Enum.map_join(relevant_lines, " ", &Enum.join(&1.formatting, " "))
 
     cond do
